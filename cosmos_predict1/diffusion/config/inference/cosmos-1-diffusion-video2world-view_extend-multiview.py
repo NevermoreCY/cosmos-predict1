@@ -23,7 +23,7 @@ Cosmos_Predict1_Video2World_7B_ViewExtend_Multiview: LazyDict = LazyDict(
     dict(
         defaults=[
             "/experiment/Cosmos_Predict1_Text2World_7B_Multiview",
-            {"override /conditioner": "video_cond_frame_repeat"},
+            {"override /conditioner": "view_conditioned_video_frame_repeat_cond"},
             "_self_",
         ],
         job=dict(
@@ -40,7 +40,7 @@ Cosmos_Predict1_Video2World_7B_ViewExtend_Multiview: LazyDict = LazyDict(
             net=L(MultiviewExtensionGeneralDIT)(
                 extra_per_block_abs_pos_emb=True,
                 extra_per_block_abs_pos_emb_type="sincos",
-                n_views=6,  # this indicates how many views to generate, can be overwritten at inference time
+                n_views=5,  # this indicates how many views to generate, can be overwritten at inference time
                 n_views_emb=7,  # this indicates how many views the model has trained for, should not be changed at inference time
                 view_condition_dim=6,
                 add_repeat_frame_embedding=True,

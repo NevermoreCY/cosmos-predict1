@@ -150,7 +150,7 @@ class DiffusionMultiviewViewExtendModel(DiffusionMultiviewV2WModel):
             condition, uncondition = self.conditioner.get_condition_uncondition(data_batch)
 
         if "view_indices" in data_batch:
-            comp_factor = self.vae.temporal_compression_factor
+            comp_factor = self.tokenizer.temporal_compression_factor
             view_indices = rearrange(data_batch["view_indices"], "B (V T) -> B V T", V=self.n_views)
             view_indices_B_V_0 = view_indices[:, :, :1]
             view_indices_B_V_1T = view_indices[:, :, 1:-1:comp_factor]
@@ -235,6 +235,9 @@ class DiffusionMultiviewViewExtendModel(DiffusionMultiviewV2WModel):
             condition_video_indicator[:, 0, :, :, :, :] += 1.0
             condition_video_indicator[:, :, :, :num_condition_t] += 1.0
             condition_video_indicator = condition_video_indicator.clamp(max=1.0)
+        elif condition_location == "first_random_n":
+            # we do nothing here, it is for inference
+            condition_video_indicator = condition_video_indicator
         else:
             raise NotImplementedError(f"condition_location {condition_location} not implemented")
 

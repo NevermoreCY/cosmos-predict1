@@ -200,6 +200,7 @@ class Dataset(Dataset):
                     frame_ids,
                 )
                 video = video.permute(1, 0, 2, 3)  # Rearrange from [T, C, H, W] to [C, T, H, W]
+
                 videos.append(video)
 
                 if self.load_mv_emb or view_key == "pinhole_front":
@@ -209,11 +210,11 @@ class Dataset(Dataset):
                         os.path.basename(t5_embedding_path),
                     )
                     with open(t5_embedding_path, "rb") as f:
-                        t5_embedding = pickle.load(f)[0]
+                        t5_embedding = pickle.load(f)[0][0]
                     if self.load_mv_emb:
                         t5_embedding = np.concatenate([self.prefix_t5_embeddings[view_key], t5_embedding], axis=0)
                 else:
-                    t5_embedding = self.prefix_t5_embeddings[view_key]
+                    t5_embedding = self.prefix_t5_embeddings[view_key][0]
 
                 t5_embedding = torch.from_numpy(t5_embedding)
                 t5_mask = torch.ones(t5_embedding.shape[0], dtype=torch.int64)
@@ -261,7 +262,7 @@ class Dataset(Dataset):
 
 if __name__ == "__main__":
     dataset = Dataset(
-        dataset_dir="datasets/waymo/",
+        dataset_dir="/lustre/fs12/portfolios/nvr/users/yuch/cosmos/yu_transfer/cosmos-transfer1/datasets/waymo_mv_total_0506",
         sequence_interval=1,
         num_frames=57,
         view_keys=[
@@ -271,7 +272,10 @@ if __name__ == "__main__":
             "pinhole_side_left",
             "pinhole_side_right",
         ],
-        video_size=[240, 360],
+        video_size=(576, 1024),
+        sample_n_views=3,
+        caption_view_idx_map={0: 0, 1: 1, 2: 2, 3: 4, 4: 5},
+        load_mv_emb=False,
     )
 
     indices = [0, 13, 200, -1]

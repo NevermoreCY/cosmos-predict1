@@ -126,6 +126,9 @@ def demo(args):
         distributed.init()
         parallel_state.initialize_model_parallel(context_parallel_size=args.num_gpus)
 
+    print("set args.fps to 10")
+    args.fps = 10
+
     # Initialize text2world generation model pipeline
     pipeline = DiffusionText2WorldMultiviewGenerationPipeline(
         inference_type=inference_type,

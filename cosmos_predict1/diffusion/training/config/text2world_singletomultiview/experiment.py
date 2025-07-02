@@ -48,7 +48,7 @@ train_num_views = 3
 num_views_embedding = 7
 view_keys = ["pinhole_front", "pinhole_front_left", "pinhole_front_right", "pinhole_side_left", "pinhole_side_right"]
 example_multiview_dataset_waymo = L(Dataset)(
-    dataset_dir="cosmos-av-sample-toolkits/waymo",
+    dataset_dir="/lustre/fs12/portfolios/nvr/users/yuch/cosmos/yu_transfer/cosmos-transfer1/datasets/waymo_mv_total_0506",
     sequence_interval=1,
     num_frames=num_frames,
     view_keys=view_keys,
@@ -81,15 +81,16 @@ text2world_singletomultiview_7b_example_waymo = LazyDict(
             eps=1e-10,
         ),
         checkpoint=dict(
-            save_iter=200,
+            save_iter=50,
             broadcast_via_filesystem=False,
-            load_path="checkpoints/Cosmos-Predict1-7B-Video2World-Sample-AV-Single2MultiView/t2w_model.pt",
+            load_path="checkpoints/Cosmos-Predict1-7B-Text2World-Sample-AV-Multiview/model.pt",
+            #load_path="checkpoints/Cosmos-Predict1-7B-Video2World-Sample-AV-Single2MultiView/t2w_model.pt",
             load_training_state=False,
             strict_resume=False,
             keys_not_to_resume=[],
         ),
         trainer=dict(
-            max_iter=2000,
+            max_iter=10000,
             distributed_parallelism="fsdp",
             logging_iter=10,
             callbacks=dict(
@@ -99,7 +100,7 @@ text2world_singletomultiview_7b_example_waymo = LazyDict(
                 ),
                 low_prec=L(LowPrecisionCallback)(config=PLACEHOLDER, trainer=PLACEHOLDER, update_iter=1),
                 iter_speed=L(IterSpeed)(
-                    every_n=200,
+                    every_n=50,
                     hit_thres=5,
                 ),
             ),
@@ -143,12 +144,14 @@ text2world_singletomultiview_7b_example_waymo = LazyDict(
             ),
             conditioner=dict(
                 video_cond_bool=dict(
-                    condition_location="first_cam",
+                    #condition_location="first_cam",
+                    condition_location="first_random_n",    
+                    first_random_n_num_condition_t_min=0,
+                    first_random_n_num_condition_t_max=0,
                     cfg_unconditional_type="zero_condition_region_condition_mask",
                     apply_corruption_to_condition_region="noise_with_sigma",
                     condition_on_augment_sigma=False,
                     dropout_rate=0.0,  # No dropout
-                    first_random_n_num_condition_t_max=0,
                     normalize_condition_latent=False,
                     # Let the augment sigma mostly fall in the range of 0 to 0.3
                     augment_sigma_sample_p_mean=-3.0,
@@ -164,7 +167,7 @@ text2world_singletomultiview_7b_example_waymo = LazyDict(
         ),
         # warming up for first 2500 steps~(when resume from 310000)
         scheduler=dict(
-            warm_up_steps=[2500],
+            warm_up_steps=[200],
             cycle_lengths=[10000000000000],
             f_start=[1.0e-6],
             f_max=[1.0],

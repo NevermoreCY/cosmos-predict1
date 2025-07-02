@@ -38,7 +38,7 @@ class MultiviewExtensionGeneralDIT(MultiviewGeneralDIT):
             self.n_views_emb = n_views
         else:
             self.n_views_emb = n_views_emb
-        in_channels = in_channels + 1
+        #in_channels = in_channels + 1
         log.info(f"MultiviewExtensionGeneralDIT in_channels: {in_channels}")
         super().__init__(
             *args, in_channels=in_channels, n_views=n_views, view_condition_dim=view_condition_dim, **kwargs
@@ -90,6 +90,7 @@ class MultiviewExtensionGeneralDIT(MultiviewGeneralDIT):
                     condition_video_input_mask, "B C V T H W -> B C (V T) H W", V=self.n_views
                 )
             input_list = [x, condition_video_input_mask]
+            
             if condition_video_pose is not None:
                 if condition_video_pose.shape[2] > T:
                     log.warning(
@@ -97,10 +98,10 @@ class MultiviewExtensionGeneralDIT(MultiviewGeneralDIT):
                     )
                     condition_video_pose = condition_video_pose[:, :, :T, :, :].contiguous()
                 input_list.append(condition_video_pose)
-            x = torch.cat(
-                input_list,
-                dim=1,
-            )
+            #x = torch.cat(
+            #    input_list,
+            #    dim=1,
+            #)
 
         return super().forward(
             x=x,
@@ -267,6 +268,7 @@ class MultiviewExtensionGeneralDIT(MultiviewGeneralDIT):
             view_embedding = self.view_embeddings(view_indices_B_T)  # B, (V T), D
             view_embedding = rearrange(view_embedding, "B (V T) D -> B D V T", V=self.n_views)
             view_embedding = view_embedding.unsqueeze(-1).unsqueeze(-1)  # Shape: [B, D, V, T, 1, 1]
+            #view_embedding = split_inputs_cp(x=view_embedding, seq_dim=3, cp_group=self.cp_group)
 
         if self.add_repeat_frame_embedding:
             if frame_repeat is None:

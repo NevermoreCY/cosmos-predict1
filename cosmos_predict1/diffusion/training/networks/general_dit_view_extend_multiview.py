@@ -53,7 +53,7 @@ class MultiviewExtensionGeneralDIT(MultiviewGeneralDIT):
         else:
             self.n_views_emb = n_views_emb
         self.view_condition_dim = view_condition_dim
-        in_channels = in_channels + 1
+        #in_channels = in_channels + 1
         super().__init__(
             *args, in_channels=in_channels, n_views=n_views, view_condition_dim=view_condition_dim, **kwargs
         )
@@ -110,10 +110,10 @@ class MultiviewExtensionGeneralDIT(MultiviewGeneralDIT):
                     )
                     condition_video_pose = condition_video_pose[:, :, :T, :, :].contiguous()
                 input_list.append(condition_video_pose)
-            x = torch.cat(
-                input_list,
-                dim=1,
-            )
+            #x = torch.cat(
+            #    input_list,
+            #    dim=1,
+            #)
 
         return super().forward(
             x=x,

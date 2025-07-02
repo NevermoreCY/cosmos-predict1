@@ -169,6 +169,9 @@ def demo(args):
         distributed.init()
         parallel_state.initialize_model_parallel(context_parallel_size=args.num_gpus)
 
+
+    args.fps = 10 
+    #import pdb; pdb.set_trace() 
     # Initialize video2world generation model pipeline
     pipeline = DiffusionViewExtendMultiviewGenerationPipeline(
         inference_type=inference_type,

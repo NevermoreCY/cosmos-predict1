@@ -1008,15 +1008,18 @@ class DiffusionText2WorldMultiviewGenerationPipeline(DiffusionText2WorldGenerati
             np.ndarray: Decoded video frames as uint8 numpy array [T, H, W, C]
                         with values in range [0, 255]
         """
+
+        if self.model.n_views == 5:
+            video_arrangement = [1, 0, 2, 3, 0, 4]
+        elif self.model.n_views == 6:
+            video_arrangement = [1, 0, 2, 4, 3, 5]
+        else:
+            raise ValueError(f"Unsupported number of views: {self.model.n_views}")
+        
         # Decode video
         video = (1.0 + self.model.decode(sample)).clamp(0, 2) / 2  # [B, 3, T, H, W]
-        video_segments = einops.rearrange(video, "b c (v t) h w -> b c v t h w", v=self.n_views)
-        video_arrangement = [1, 0, 2, 4, 3, 5]
-	    # Fill one blank view for 5view
-        if self.n_views == 5:
-            ones_tensor = torch.zeros_like(video_segments[:, :, 0,],).unsqueeze(2)
-            video_segments = torch.cat((video_segments, ones_tensor), dim=2)
-            video_arrangement = [1, 0, 2, 3, 5, 4]
+        video_segments = einops.rearrange(video, "b c (v t) h w -> b c v t h w", v=self.model.n_views)
+        
         grid_video = torch.stack(
             [video_segments[:, :, i] for i in video_arrangement],
             dim=2,
@@ -1345,7 +1348,7 @@ class DiffusionVideo2WorldMultiviewGenerationPipeline(DiffusionText2WorldMultivi
             ]
         prompt_embeddings, _ = self._run_text_embedding_on_prompt_with_offload(prompts)
         log.info("Finish text embedding on prompt")
-
+        import pdb; pdb.set_trace() 
         # Generate video
         log.info("Run generation")
         video = self._run_model_with_offload(
@@ -1768,11 +1771,15 @@ class DiffusionViewExtendMultiviewGenerationPipeline(DiffusionVideo2WorldMultivi
         elif condition_location.startswith("fixed_cam"):
             return [int(c) for c in condition_location.split("_")[2:]]
         else:
-            raise ValueError(f"condition_location {condition_location} not recognized")
+            return None
+            #raise ValueError(f"condition_location {condition_location} not recognized")
 
     def _mix_condition_latents(self, state_shape, view_condition_latent, initial_condition_latent) -> torch.Tensor:
         if initial_condition_latent is None:
             initial_condition_latent = torch.zeros(state_shape, dtype=torch.bfloat16).unsqueeze(0).cuda()
+        
+        #import pdb; pdb.set_trace() 
+        # self.model.n_views = 5
         initial_condition_latent = einops.rearrange(
             initial_condition_latent, "B C (V T) H W -> B C V T H W", V=self.model.n_views
         )
@@ -1818,39 +1825,41 @@ class DiffusionViewExtendMultiviewGenerationPipeline(DiffusionVideo2WorldMultivi
         self.model.condition_location = condition_location
 
         view_condition_latents = {}
-        if os.path.isdir(view_condition_video_path):
-            fnames = sorted(os.listdir(view_condition_video_path))
-            for fname in fnames:
-                if fname.endswith(".mp4"):
-                    try:
-                        input_view_id = int(fname.split(".")[0])
-                    except ValueError:
-                        log.warning(f"Could not parse video file name {fname} into view id")
-                        continue
-                    condition_latent = get_condition_latent(
-                        model=self.model,
-                        input_image_or_video_path=os.path.join(view_condition_video_path, fname),
-                        num_input_frames=self.num_video_frames,
-                        from_back=False,
-                        start_frame=view_cond_start_frame,
-                    )
-                    view_condition_latents[input_view_id] = condition_latent
-                    log.info(f"read {condition_latent.shape} shaped latent from view_condition_video_path/{fname}")
-        else:
-            assert len(requisite_input_views) == 1
-            condition_latent = get_condition_latent(
-                model=self.model,
-                input_image_or_video_path=view_condition_video_path,
-                num_input_frames=self.num_video_frames,
-                from_back=False,
-                start_frame=view_cond_start_frame,
-            )
-            view_condition_latents[requisite_input_views[0]] = condition_latent
-            log.info(f"read {condition_latent.shape} shaped latent from {view_condition_video_path}")
 
-        assert set(view_condition_latents.keys()).issuperset(
-            set(requisite_input_views)
-        ), f"Not all views required by condition location, are found in {view_condition_video_path}. Views required:  {requisite_input_views}, views found:  {set(view_condition_latents.keys())}"
+        if requisite_input_views:
+            if os.path.isdir(view_condition_video_path):
+                fnames = sorted(os.listdir(view_condition_video_path))
+                for fname in fnames:
+                    if fname.endswith(".mp4"):
+                        try:
+                            input_view_id = int(fname.split(".")[0])
+                        except ValueError:
+                            log.warning(f"Could not parse video file name {fname} into view id")
+                            continue
+                        condition_latent = get_condition_latent(
+                            model=self.model,
+                            input_image_or_video_path=os.path.join(view_condition_video_path, fname),
+                            num_input_frames=self.num_video_frames,
+                            from_back=False,
+                            start_frame=view_cond_start_frame,
+                        )
+                        view_condition_latents[input_view_id] = condition_latent
+                        log.info(f"read {condition_latent.shape} shaped latent from view_condition_video_path/{fname}")
+            else:
+                assert len(requisite_input_views) == 1
+                condition_latent = get_condition_latent(
+                    model=self.model,
+                    input_image_or_video_path=view_condition_video_path,
+                    num_input_frames=self.num_video_frames,
+                    from_back=False,
+                    start_frame=view_cond_start_frame,
+                )
+                view_condition_latents[requisite_input_views[0]] = condition_latent
+                log.info(f"read {condition_latent.shape} shaped latent from {view_condition_video_path}")
+
+        #assert set(view_condition_latents.keys()).issuperset(
+        #    set(requisite_input_views)
+        #), f"Not all views required by condition location, are found in {view_condition_video_path}. Views required:  {requisite_input_views}, views found:  {set(view_condition_latents.keys())}"
 
         if "first_n" in condition_location:
             assert initial_condition_video_path is not None

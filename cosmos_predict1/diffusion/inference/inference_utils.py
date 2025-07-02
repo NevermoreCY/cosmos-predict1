@@ -477,6 +477,30 @@ def get_video_batch_for_multiview_model(
         fps=fps,
         prompt_embedding=prompt_embedding,
     )
+
+    #import pdb; pdb.set_trace()
+    # n_views = 5  
+    if n_views == 5:
+        mapped_indices = [0, 1, 2, 4, 5]
+        view_indices_conditioning = []
+        for v_index in mapped_indices:
+            view_indices_conditioning.append(torch.ones(int(num_video_frames/n_views), device="cuda") * v_index)
+        view_indices_conditioning = torch.cat(view_indices_conditioning, dim=0)
+        raw_video_batch["view_indices"] = view_indices_conditioning.unsqueeze(0).contiguous()
+
+        #raw_video_batch["view_indices"].shape =[1,1425]
+        # (Pdb) raw_video_batch["view_indices"].shape
+        #torch.Size([1, 285])
+        import pdb; pdb.set_trace()   
+
+    #if n_views == 5:
+    #    mapped_indices = [0, 1, 2, 4, 5]
+    #    view_indices_conditioning = []
+    #    for v_index in mapped_indices:
+    #        view_indices_conditioning.append(torch.ones(num_video_frames, device="cuda") * v_index)
+    #    view_indices_conditioning = torch.cat(view_indices_conditioning, dim=0)
+    #    data_batch["view_indices"] = view_indices_conditioning.unsqueeze(0).contiguous()
+
     if frame_repeat_negative_condition != -1:
         frame_repeat = torch.zeros(n_views)
         frame_repeat[-1] = frame_repeat_negative_condition
